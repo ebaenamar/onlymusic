@@ -25,7 +25,7 @@ export const getSpotifyApi = async (session: Session) => {
   
   // Check if token needs refresh
   const now = Date.now()
-  if (session.expires && now > session.expires) {
+  if (session.expires && now > session.expires && session.accessToken) {
     const data = await spotifyApi.refreshAccessToken()
     spotifyApi.setAccessToken(data.body.access_token)
     
