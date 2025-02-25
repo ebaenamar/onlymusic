@@ -265,7 +265,6 @@ export default function MusicMoments() {
               color: '#fff',
               loaderColor: '#fff',
               sliderColor: '#1cb954',
-              savedColor: '#fff',
               trackArtistColor: '#ccc',
               trackNameColor: '#fff',
             }}
