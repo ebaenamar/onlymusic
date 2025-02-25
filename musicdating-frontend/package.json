@@ -26,7 +26,8 @@
     "typescript": "^5.0.4",
     "@types/react": "^18.2.0",
     "@types/node": "^18.0.0",
-    "@types/spotify-web-api-node": "^5.0.7"
+    "@types/spotify-web-api-node": "^5.0.7",
+    "react-icons": "^4.10.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
