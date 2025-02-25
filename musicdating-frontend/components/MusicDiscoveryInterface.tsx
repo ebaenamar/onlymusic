@@ -28,6 +28,7 @@ import {
 } from 'react-icons/fa'
 import MusicVisualizer from './MusicVisualizer'
 import MusicCompatibilityViz from './MusicCompatibilityViz'
+import { AdvancedPlaylistProfile } from '../types/music'
 
 const MotionBox = motion(Box)
 
