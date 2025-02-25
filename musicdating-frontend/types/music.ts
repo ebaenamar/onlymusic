@@ -30,4 +30,8 @@ export interface AdvancedPlaylistProfile {
   keyDistribution: Record<string, number>
   uniqueArtists: number
   totalTracks: number
+  genreSignature: {
+    primary: string[]
+    secondary: string[]
+  }
 }
