@@ -79,14 +79,35 @@ export const getCurrentPlayback = async (): Promise<PlaybackState | null> => {
     const state = await spotifyApi.getMyCurrentPlaybackState()
     if (!state.body || !state.body.item) return null
     
+    // Check if the item is a track or an episode
+    const item = state.body.item
+    const isTrack = 'artists' in item && 'album' in item
+    
+    if (!isTrack) {
+      // Handle podcast episode
+      return {
+        isPlaying: state.body.is_playing,
+        track: {
+          id: item.id,
+          name: item.name,
+          artist: 'Podcast',
+          albumArt: item.images?.[0]?.url || '',
+          duration: item.duration_ms
+        },
+        progress: state.body.progress_ms || 0,
+        timestamp: Date.now()
+      }
+    }
+    
+    // Handle music track
     return {
       isPlaying: state.body.is_playing,
       track: {
-        id: state.body.item.id,
-        name: state.body.item.name,
-        artist: state.body.item.artists[0].name,
-        albumArt: state.body.item.album.images[0].url,
-        duration: state.body.item.duration_ms
+        id: item.id,
+        name: item.name,
+        artist: item.artists[0].name,
+        albumArt: item.album.images[0].url,
+        duration: item.duration_ms
       },
       progress: state.body.progress_ms || 0,
       timestamp: Date.now()
