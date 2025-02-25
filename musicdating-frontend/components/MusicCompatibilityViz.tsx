@@ -54,7 +54,9 @@ export default function MusicCompatibilityViz({
         const segment = svg.append('path')
           .attr('d', arcGenerator({
             startAngle: angle,
-            endAngle: angle + angleStep
+            endAngle: angle + angleStep,
+            innerRadius: radius * 0.6,
+            outerRadius: radius
           }))
           .attr('fill', isShared ? '#1DB954' : '#4A5568')
           .attr('opacity', 0.8)
