@@ -26,8 +26,8 @@ import {
   FaPlus,
   FaMusic,
 } from 'react-icons/fa'
-import { MusicVisualizer } from './MusicVisualizer'
-import { MusicCompatibilityViz } from './MusicCompatibilityViz'
+import MusicVisualizer from './MusicVisualizer'
+import MusicCompatibilityViz from './MusicCompatibilityViz'
 
 const MotionBox = motion(Box)
 
