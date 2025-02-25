@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Box, Text, VStack, HStack, Progress } from '@chakra-ui/react'
 import { motion, useAnimation } from 'framer-motion'
 import * as d3 from 'd3'
-import { AdvancedPlaylistProfile, EmotionalPoint } from '../types/music'
+import { AdvancedPlaylistProfile } from '../types/music'
 
 interface MusicCompatibilityVizProps {
   userProfile: AdvancedPlaylistProfile
@@ -103,49 +103,56 @@ export default function MusicCompatibilityViz({
       })
     }
 
-    // Create emotional journey visualization
-    const createEmotionalJourney = () => {
-      const userEmotions = userProfile.emotionalJourney.emotionalArc
-      const matchEmotions = matchProfile.emotionalJourney.emotionalArc
+    // Create mood profile visualization
+    const createMoodProfile = () => {
+      const userMood = userProfile.moodProfile
+      const matchMood = matchProfile.moodProfile
 
-      const lineGenerator = d3.line<EmotionalPoint>()
-        .x(d => d.position * width)
-        .y(d => height * (1 - (d.valence * 0.5 + d.energy * 0.5)))
-        .curve(d3.curveCatmullRom)
+      const moodFeatures = ['energy', 'danceability', 'valence']
+      const angleStep = (2 * Math.PI) / moodFeatures.length
+      const radius = Math.min(width, height) / 3
 
-      // User's emotional journey
-      svg.append('path')
-        .datum(userEmotions)
-        .attr('d', lineGenerator)
-        .attr('fill', 'none')
-        .attr('stroke', '#1DB954')
-        .attr('stroke-width', 2)
-        .attr('opacity', 0.8)
+      moodFeatures.forEach((feature, i) => {
+        const angle = i * angleStep
+        const userValue = userMood[feature as keyof typeof userMood]
+        const matchValue = matchMood[feature as keyof typeof matchMood]
 
-      // Match's emotional journey
-      svg.append('path')
-        .datum(matchEmotions)
-        .attr('d', lineGenerator)
-        .attr('fill', 'none')
-        .attr('stroke', '#4A5568')
-        .attr('stroke-width', 2)
-        .attr('opacity', 0.8)
+        // Draw axes
+        svg.append('line')
+          .attr('x1', width/2)
+          .attr('y1', height/2)
+          .attr('x2', width/2 + Math.cos(angle) * radius)
+          .attr('y2', height/2 + Math.sin(angle) * radius)
+          .attr('stroke', '#2D3748')
+          .attr('stroke-width', 1)
+          .attr('opacity', 0.3)
 
-      // Add intersection points
-      userEmotions.forEach((value, i) => {
-        if (Math.abs(value - matchEmotions[i]) < 0.1) {
-          svg.append('circle')
-            .attr('cx', i * (width / userEmotions.length))
-            .attr('cy', height * (1 - value))
-            .attr('r', 4)
-            .attr('fill', '#1DB954')
-            .attr('opacity', 0.8)
-        }
+        // Draw user point
+        svg.append('circle')
+          .attr('cx', width/2 + Math.cos(angle) * radius * userValue)
+          .attr('cy', height/2 + Math.sin(angle) * radius * userValue)
+          .attr('r', 4)
+          .attr('fill', '#1DB954')
+
+        // Draw match point
+        svg.append('circle')
+          .attr('cx', width/2 + Math.cos(angle) * radius * matchValue)
+          .attr('cy', height/2 + Math.sin(angle) * radius * matchValue)
+          .attr('r', 4)
+          .attr('fill', '#4A5568')
+
+        // Add feature label
+        svg.append('text')
+          .attr('x', width/2 + Math.cos(angle) * (radius + 20))
+          .attr('y', height/2 + Math.sin(angle) * (radius + 20))
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#A0AEC0')
+          .text(feature.charAt(0).toUpperCase() + feature.slice(1))
       })
     }
 
     createMusicalDNA()
-    createEmotionalJourney()
+    createMoodProfile()
 
   }, [userProfile, matchProfile])
 
