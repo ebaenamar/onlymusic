@@ -163,6 +163,46 @@ export class AdvancedMusicAnalyzer {
     }
   }
 
+  private calculateTemporalDiversity(audioFeatures: AudioFeatures[]): number {
+    if (audioFeatures.length === 0) return 0
+    
+    // Calculate standard deviation of tempos as a measure of diversity
+    const tempos = audioFeatures.map(af => af.tempo)
+    const mean = tempos.reduce((sum, tempo) => sum + tempo, 0) / tempos.length
+    const variance = tempos.reduce((sum, tempo) => sum + Math.pow(tempo - mean, 2), 0) / tempos.length
+    const stdDev = Math.sqrt(variance)
+    
+    // Calculate time signature diversity (number of unique time signatures)
+    const uniqueTimeSignatures = new Set(audioFeatures.map(af => af.time_signature)).size
+    
+    // Calculate diversity in other rhythmic features
+    const energyDiversity = this.calculateFeatureDiversity(audioFeatures.map(af => af.energy))
+    const danceDiversity = this.calculateFeatureDiversity(audioFeatures.map(af => af.danceability))
+    
+    // Combine factors into a single diversity score (0-1)
+    const tempoFactor = Math.min(stdDev / 50, 1) // Normalize tempo std dev
+    const timeSignatureFactor = Math.min((uniqueTimeSignatures - 1) / 3, 1) // Normalize time signatures
+    const otherFactor = (energyDiversity + danceDiversity) / 2
+    
+    // Weighted average of factors
+    const diversityScore = (tempoFactor * 0.4) + (timeSignatureFactor * 0.3) + (otherFactor * 0.3)
+    
+    // Return score on a 0-1 scale
+    return diversityScore
+  }
+  
+  private calculateFeatureDiversity(values: number[]): number {
+    if (values.length <= 1) return 0
+    
+    // Calculate standard deviation as a measure of diversity
+    const mean = values.reduce((sum, val) => sum + val, 0) / values.length
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length
+    const stdDev = Math.sqrt(variance)
+    
+    // Normalize to a 0-1 scale
+    return Math.min(stdDev * 2, 1)
+  }
+
   private async analyzeMusicalComplexity(audioFeatures: AudioFeatures[]): Promise<MusicalComplexity> {
     const features = tf.tensor2d(audioFeatures.map(af => [
       af.instrumentalness,
