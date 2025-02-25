@@ -1,11 +1,44 @@
-import { Box, Container, VStack, Text, Button, Image } from '@chakra-ui/react'
-import { signIn } from 'next-auth/react'
+import { Box, Container, VStack, Text, Button, Image, useToast } from '@chakra-ui/react'
+import { signIn, useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
+import { useRouter } from 'next/router'
+import { useEffect } from 'react'
 
 const MotionBox = motion(Box)
 const MotionImage = motion(Image)
 
 export default function SignIn() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const toast = useToast()
+  const { error } = router.query
+
+  useEffect(() => {
+    if (session) {
+      router.push('/')
+    }
+  }, [session, router])
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Authentication Error',
+        description: error === 'AccessDenied' ? 'You need to allow Spotify access' : 'Something went wrong',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }, [error, toast])
+
+  if (status === 'loading') {
+    return (
+      <Container centerContent>
+        <Text>Loading...</Text>
+      </Container>
+    )
+  }
+
   return (
     <Container 
       maxW="100vw" 
