@@ -213,8 +213,27 @@ export class AdvancedMusicAnalyzer {
     ]))
 
     const complexityPrediction = this.model!.predict(features) as tf.Tensor
-
-    const [harmonic, rhythmic, structural] = await complexityPrediction.array()
+    
+    // Fix: Convert tensor to array and properly handle the result
+    const predictionArray = await complexityPrediction.array();
+    let harmonic = 0.5;
+    let rhythmic = 0.5;
+    let structural = 0.5;
+    
+    // Safely extract values from the prediction array
+    if (Array.isArray(predictionArray) && predictionArray.length >= 3) {
+      // If it's a flat array of values
+      [harmonic, rhythmic, structural] = predictionArray;
+    } else if (Array.isArray(predictionArray) && predictionArray.length > 0) {
+      // If it's a nested array (e.g., batch of predictions)
+      const firstPrediction = predictionArray[0];
+      if (Array.isArray(firstPrediction) && firstPrediction.length >= 3) {
+        [harmonic, rhythmic, structural] = firstPrediction;
+      }
+    }
+    
+    // Clean up tensor to prevent memory leaks
+    complexityPrediction.dispose();
 
     return {
       harmonicComplexity: harmonic,
