@@ -29,9 +29,6 @@ export const authOptions: NextAuthOptions = {
       }
     })
   ],
-  pages: {
-    signIn: '/auth/signin',
-  },
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
@@ -42,7 +39,7 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token, user }) {
-      session.accessToken = token.accessToken
+      session.accessToken = token.accessToken as string
       session.user.id = user.id
       return session
     },
@@ -57,4 +54,6 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt'
   },
   secret: process.env.NEXTAUTH_SECRET
-})
+}
+
+export default NextAuth(authOptions)
