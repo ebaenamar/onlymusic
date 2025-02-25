@@ -115,6 +115,38 @@ export class AdvancedMusicAnalyzer {
     }
   }
 
+  private analyzeGenreEvolution(tracks: Track[]): { emerging: string[], declining: string[] } {
+    // This is a simplified implementation that would normally analyze trends over time
+    // For now, we'll return some placeholder data
+    return {
+      emerging: tracks.slice(0, 3)
+        .flatMap(track => track.artists)
+        .flatMap(artist => artist.genres || [])
+        .filter(Boolean)
+        .slice(0, 3),
+      declining: tracks.slice(-3)
+        .flatMap(track => track.artists)
+        .flatMap(artist => artist.genres || [])
+        .filter(Boolean)
+        .slice(0, 3)
+    }
+  }
+
+  private calculateCrossGenreScore(genreCounts: Map<string, number>): number {
+    // Calculate diversity score based on genre distribution
+    // Higher score means more diverse genres
+    const totalGenres = Array.from(genreCounts.values()).reduce((sum, count) => sum + count, 0)
+    const uniqueGenres = genreCounts.size
+    
+    if (totalGenres === 0) return 0
+    
+    // Normalize to a 0-1 scale where higher means more diverse
+    const rawScore = uniqueGenres / totalGenres
+    
+    // Scale to 0-100 for better readability
+    return Math.min(Math.round(rawScore * 100), 100)
+  }
+
   private analyzeTemporalPatterns(audioFeatures: AudioFeatures[]): TemporalPatterns {
     const tempos = audioFeatures.map(af => af.tempo)
     const timeSignatures = audioFeatures.reduce((acc, af) => {
