@@ -1,7 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getSession } from 'next-auth/react'
 import { getSpotifyApi } from '../../../lib/spotify'
-import { prisma } from '../../../lib/prisma'
+import clientPromise from '../../../lib/mongodb'
+import { ObjectId } from 'mongodb'
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,64 +15,72 @@ export default async function handler(
 
   try {
     const spotify = await getSpotifyApi(session)
+    const client = await clientPromise
+    const db = client.db(process.env.MONGODB_DB)
     
     // Get user's current track
     const playing = await spotify.getMyCurrentPlayingTrack()
     
-    if (playing.body && playing.body.item) {
+    if (playing.body && playing.body.item && 'artists' in playing.body.item && 'album' in playing.body.item) {
+      const track = playing.body.item
+      
       // Update user's current track in DB
-      await prisma.musicMoment.upsert({
-        where: {
-          userId: session.user.id
+      await db.collection('musicMoments').updateOne(
+        { userId: session.user.id },
+        {
+          $set: {
+            trackId: track.id,
+            trackName: track.name,
+            artistName: track.artists[0].name,
+            albumArt: track.album.images[0].url,
+            timestamp: new Date()
+          }
         },
-        update: {
-          trackId: playing.body.item.id,
-          trackName: playing.body.item.name,
-          artistName: playing.body.item.artists[0].name,
-          albumArt: playing.body.item.album.images[0].url,
-          timestamp: new Date()
-        },
-        create: {
-          userId: session.user.id,
-          trackId: playing.body.item.id,
-          trackName: playing.body.item.name,
-          artistName: playing.body.item.artists[0].name,
-          albumArt: playing.body.item.album.images[0].url,
-          timestamp: new Date()
-        }
-      })
+        { upsert: true }
+      )
     }
 
     // Get other users' current tracks (last 15 minutes)
-    const recentMoments = await prisma.musicMoment.findMany({
-      where: {
-        timestamp: {
-          gte: new Date(Date.now() - 15 * 60 * 1000)
-        },
-        userId: {
-          not: session.user.id
-        }
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            image: true
+    const recentMoments = await db.collection('musicMoments')
+      .aggregate([
+        {
+          $match: {
+            timestamp: {
+              $gte: new Date(Date.now() - 15 * 60 * 1000)
+            },
+            userId: {
+              $ne: session.user.id
+            }
           }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'userId',
+            foreignField: '_id',
+            as: 'userInfo'
+          }
+        },
+        {
+          $unwind: '$userInfo'
+        },
+        {
+          $sort: {
+            timestamp: -1
+          }
+        },
+        {
+          $limit: 20
         }
-      },
-      orderBy: {
-        timestamp: 'desc'
-      },
-      take: 20
-    })
+      ])
+      .toArray()
 
     // Format response
     const moments = recentMoments.map(moment => ({
-      id: moment.id,
+      id: moment._id.toString(),
       userId: moment.userId,
-      userName: moment.user.name,
-      userPhoto: moment.user.image,
+      userName: moment.userInfo.name,
+      userPhoto: moment.userInfo.image,
       track: {
         id: moment.trackId,
         name: moment.trackName,
