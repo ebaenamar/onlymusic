@@ -39,9 +39,16 @@ interface MusicMoment {
   listeners: number
 }
 
+interface UserTrack {
+  id: string
+  name: string
+  artist: string
+  albumArt: string
+}
+
 export default function MusicMoments() {
   const [currentMoments, setCurrentMoments] = useState<MusicMoment[]>([])
-  const [userTrack, setUserTrack] = useState<string | null>(null)
+  const [userTrack, setUserTrack] = useState<UserTrack | null>(null)
   const [matches, setMatches] = useState<MusicMoment[]>([])
   const toast = useToast()
 
@@ -59,8 +66,8 @@ export default function MusicMoments() {
     
     // Check for matches with your current track
     if (userTrack) {
-      const matchingMoments = moments.filter(m => 
-        m.track.id === userTrack || 
+      const matchingMoments = moments.filter((m: MusicMoment) => 
+        m.track.id === userTrack.id || 
         m.track.artist === userTrack.artist
       )
       if (matchingMoments.length > 0) {
