@@ -82,16 +82,15 @@ export default function MusicCompatibilityViz({
 
       // Add connecting lines for shared musical features
       const features = [
-        'tempo',
-        'energy',
-        'valence',
-        'danceability'
+        'slow',
+        'medium',
+        'fast'
       ]
 
       features.forEach((feature, i) => {
         const angle = i * (2 * Math.PI / features.length)
-        const userValue = userProfile.temporalPatterns.tempoDistribution[i]
-        const matchValue = matchProfile.temporalPatterns.tempoDistribution[i]
+        const userValue = userProfile.tempoDistribution[features[i] as keyof typeof userProfile.tempoDistribution]
+        const matchValue = matchProfile.tempoDistribution[features[i] as keyof typeof matchProfile.tempoDistribution]
 
         const line = svg.append('line')
           .attr('x1', width/2 + Math.cos(angle) * radius * 0.4 * userValue)
