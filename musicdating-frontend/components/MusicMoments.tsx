@@ -9,9 +9,9 @@ import {
   Badge,
   useToast,
   Fade,
-  keyframes,
   Tooltip
 } from '@chakra-ui/react'
+import { keyframes } from '@emotion/react'
 import { motion } from 'framer-motion'
 import { FaHeadphones, FaHeart, FaComment, FaSpotify } from 'react-icons/fa'
 import SpotifyPlayer from 'react-spotify-web-playback'
