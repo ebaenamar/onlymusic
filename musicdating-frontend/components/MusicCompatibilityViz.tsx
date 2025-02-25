@@ -212,26 +212,11 @@ export default function MusicCompatibilityViz({
 
         <Box w="full" p={4} bg="whiteAlpha.100" borderRadius="lg">
           <VStack align="start" spacing={3}>
-            <Text fontWeight="bold">Musical Personality Match</Text>
+            <Text fontWeight="bold">Musical Compatibility</Text>
             <HStack justify="space-between" w="full">
-              <Text fontSize="sm">Openness</Text>
+              <Text fontSize="sm">Compatibility Score</Text>
               <Progress
-                value={Math.min(
-                  userProfile.listenerPersonality.openness,
-                  matchProfile.listenerPersonality.openness
-                ) * 100}
-                w="50%"
-                colorScheme="green"
-                size="sm"
-              />
-            </HStack>
-            <HStack justify="space-between" w="full">
-              <Text fontSize="sm">Eclecticism</Text>
-              <Progress
-                value={Math.min(
-                  userProfile.listenerPersonality.eclecticism,
-                  matchProfile.listenerPersonality.eclecticism
-                ) * 100}
+                value={compatibilityScore * 100}
                 w="50%"
                 colorScheme="green"
                 size="sm"
