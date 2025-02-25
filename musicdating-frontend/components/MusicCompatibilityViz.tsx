@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Box, Text, VStack, HStack, Progress } from '@chakra-ui/react'
 import { motion, useAnimation } from 'framer-motion'
 import * as d3 from 'd3'
-import { AdvancedPlaylistProfile } from '../types/music'
+import { AdvancedPlaylistProfile, EmotionalPoint } from '../types/music'
 
 interface MusicCompatibilityVizProps {
   userProfile: AdvancedPlaylistProfile
@@ -108,9 +108,9 @@ export default function MusicCompatibilityViz({
       const userEmotions = userProfile.emotionalJourney.emotionalArc
       const matchEmotions = matchProfile.emotionalJourney.emotionalArc
 
-      const lineGenerator = d3.line()
-        .x((d, i) => i * (width / userEmotions.length))
-        .y(d => height * (1 - d))
+      const lineGenerator = d3.line<EmotionalPoint>()
+        .x(d => d.position * width)
+        .y(d => height * (1 - (d.valence * 0.5 + d.energy * 0.5)))
         .curve(d3.curveCatmullRom)
 
       // User's emotional journey

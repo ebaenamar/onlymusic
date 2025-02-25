@@ -14,6 +14,12 @@ export interface AudioFeatures {
   time_signature: number
 }
 
+export interface EmotionalPoint {
+  valence: number
+  energy: number
+  position: number
+}
+
 export interface AdvancedPlaylistProfile {
   topGenres: { genre: string; count: number }[]
   averageFeatures: AudioFeatures
@@ -33,5 +39,10 @@ export interface AdvancedPlaylistProfile {
   genreSignature: {
     primary: string[]
     secondary: string[]
+  }
+  emotionalJourney: {
+    emotionalArc: EmotionalPoint[]
+    peakMoment: EmotionalPoint
+    lowestMoment: EmotionalPoint
   }
 }
