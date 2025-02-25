@@ -13,6 +13,16 @@ if (!MONGODB_DB) {
   throw new Error('Define the MONGODB_DB environmental variable')
 }
 
+// Define User interface
+interface User {
+  _id: ObjectId
+  playlistId?: string
+  photoUrl?: string
+  musicFeatures?: any
+  photoFeatures?: any
+  [key: string]: any // For other properties
+}
+
 let cachedClient: MongoClient | null = null
 let cachedDb: any = null
 
@@ -48,7 +58,7 @@ export default async function handler(
     const userId = new ObjectId(req.query.userId as string)
     
     // Get user's profile
-    const user = await db.collection('users').findOne({ _id: userId })
+    const user = await db.collection('users').findOne({ _id: userId }) as User
     if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }
@@ -60,10 +70,10 @@ export default async function handler(
         // Add any additional filtering criteria
       })
       .limit(20)
-      .toArray()
+      .toArray() as User[]
 
     // Calculate match scores
-    const scoredMatches = matches.map(match => ({
+    const scoredMatches = matches.map((match: User) => ({
       ...match,
       score: calculateMatchScore(user, match),
     }))
@@ -85,11 +95,23 @@ export default async function handler(
   }
 }
 
-function calculateMatchScore(user1: any, user2: any) {
+function calculateMatchScore(user1: User, user2: User) {
   // Implement your matching algorithm here
   // This is a simplified version
   const musicScore = calculateMusicCompatibility(user1.musicFeatures, user2.musicFeatures)
   const photoScore = calculatePhotoCompatibility(user1.photoFeatures, user2.photoFeatures)
   
   return 0.6 * photoScore + 0.4 * musicScore
+}
+
+function calculateMusicCompatibility(features1: any, features2: any): number {
+  // Implement music compatibility algorithm
+  // For now, return a random score between 0 and 1
+  return Math.random();
+}
+
+function calculatePhotoCompatibility(features1: any, features2: any): number {
+  // Implement photo compatibility algorithm
+  // For now, return a random score between 0 and 1
+  return Math.random();
 }
