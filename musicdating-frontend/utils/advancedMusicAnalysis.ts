@@ -91,7 +91,8 @@ export class AdvancedMusicAnalyzer {
   }
 
   private async analyzeGenreSignature(tracks: Track[], artists: Artist[]): Promise<GenreSignature> {
-    const allGenres = artists.flatMap(artist => artist.genres)
+    // Filter out undefined genres
+    const allGenres = artists.flatMap(artist => artist.genres || []).filter(Boolean)
     const genreCounts = new Map<string, number>()
     
     allGenres.forEach(genre => {
