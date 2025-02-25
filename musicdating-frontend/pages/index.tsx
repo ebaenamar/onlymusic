@@ -2,11 +2,23 @@ import { useEffect, useState } from 'react'
 import { Box, Container, VStack, Image, Text, Button, useToast, Spinner } from '@chakra-ui/react'
 import { useSession, signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
+import axios from 'axios'
+import useSWR from 'swr'
+
+const fetcher = (url: string) => axios.get(url).then(res => res.data)
 
 export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const toast = useToast()
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+
+  const { data: matches, error } = useSWR(
+    session ? '/api/match' : null,
+    fetcher
+  )
+
+  const currentMatch = matches?.[currentMatchIndex]
 
   if (status === 'loading') {
     return (
@@ -29,24 +41,47 @@ export default function Home() {
           <Text fontSize="xl" textAlign="center" color="gray.500">
             Connect with people who share your music taste
           </Text>
-          <Button
+          <Image 
+            src="/music-connection.jpg" 
+            alt="Music Connection" 
+            borderRadius="md"
+            maxW="500px"
+          />
+          <Button 
+            colorScheme="green" 
             size="lg"
-            colorScheme="green"
-            onClick={() => signIn('spotify', { callbackUrl: '/' })}
-            leftIcon={
-              <Image
-                src="/spotify-icon.png"
-                alt="Spotify"
-                width={6}
-                height={6}
-              />
-            }
+            onClick={() => signIn('spotify')}
           >
-            Sign in with Spotify
+            Connect with Spotify
           </Button>
         </VStack>
       </Container>
     )
+  }
+
+  const handleLike = async () => {
+    try {
+      await axios.post('/api/like', { matchId: currentMatch.id })
+      toast({
+        title: 'Like sent!',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+      setCurrentMatchIndex(prev => (prev + 1) % matches.length)
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not send like',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
+  const handleSkip = () => {
+    setCurrentMatchIndex(prev => (prev + 1) % matches.length)
   }
 
   return (
@@ -56,149 +91,21 @@ export default function Home() {
           Welcome, {session.user?.name}!
         </Text>
         <Text>Your musical journey begins here...</Text>
-      </VStack>
-    </Container>
-  )
-
-const fetcher = (url: string) => axios.get(url).then(res => res.data)
-
-export default function Home() {
-  const { data: session } = useSession()
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
-  const toast = useToast()
-
-  const { data: matches, error } = useSWR(
-    session ? '/api/match' : null,
-    fetcher
-  )
-
-  const currentMatch = matches?.[currentMatchIndex]
-
-  const handleLike = async () => {
-    try {
-      await axios.post('/api/like', { matchId: currentMatch.id })
-      toast({
-        title: 'Like sent!',
-        status: 'success',
-        duration: 3000,
-      })
-      setCurrentMatchIndex(prev => prev + 1)
-    } catch (error) {
-      toast({
-        title: 'Error sending like',
-        status: 'error',
-        duration: 3000,
-      })
-    }
-  }
-
-  const handlePass = () => {
-    setCurrentMatchIndex(prev => prev + 1)
-  }
-
-  if (!session) {
-    return (
-      <Container centerContent py={20}>
-        <VStack spacing={8}>
-          <Text fontSize="2xl" fontWeight="bold">
-            Find your musical soulmate
-          </Text>
-          <Button
-            colorScheme="green"
-            size="lg"
-            onClick={() => signIn('spotify')}
-          >
-            Sign in with Spotify
-          </Button>
-        </VStack>
-      </Container>
-    )
-  }
-
-  if (error) {
-    return <div>Error loading matches</div>
-  }
-
-  if (!matches) {
-    return <div>Loading...</div>
-  }
-
-  return (
-    <Container maxW="xl" py={8}>
-      {currentMatch ? (
-        <VStack spacing={6}>
-          <Box
-            position="relative"
-            w="100%"
-            h="500px"
-            borderRadius="lg"
-            overflow="hidden"
-          >
-            <Image
-              src={currentMatch.photoUrl}
-              alt="Profile photo"
-              objectFit="cover"
-              w="100%"
-              h="100%"
-            />
-            <Box
-              position="absolute"
-              bottom={4}
-              left={4}
-              bg="blackAlpha.700"
-              color="white"
-              px={4}
-              py={2}
-              borderRadius="md"
-            >
-              {Math.round(currentMatch.score * 100)}% Match
+        
+        {matches ? (
+          currentMatch ? (
+            <Box>
+              {/* Match display and interaction UI */}
             </Box>
-          </Box>
-
-          <Box w="100%">
-            <SpotifyPlayer
-              token={session.accessToken}
-              uris={[`spotify:playlist:${currentMatch.playlistId}`]}
-              styles={{
-                activeColor: '#fff',
-                bgColor: '#333',
-                color: '#fff',
-                loaderColor: '#fff',
-                sliderColor: '#1cb954',
-                trackArtistColor: '#ccc',
-                trackNameColor: '#fff',
-              }}
-            />
-          </Box>
-
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            w="100%"
-            px={4}
-          >
-            <Button
-              size="lg"
-              onClick={handlePass}
-              colorScheme="gray"
-            >
-              Pass
-            </Button>
-            <Button
-              size="lg"
-              onClick={handleLike}
-              colorScheme="green"
-            >
-              Like
-            </Button>
-          </Box>
-        </VStack>
-      ) : (
-        <VStack spacing={4}>
-          <Text fontSize="xl">No more matches available</Text>
-          <Text color="gray.500">Check back later!</Text>
-        </VStack>
-      )}
+          ) : (
+            <Text>No matches found. Check back later!</Text>
+          )
+        ) : error ? (
+          <Text>Error loading matches</Text>
+        ) : (
+          <Spinner />
+        )}
+      </VStack>
     </Container>
   )
 }
