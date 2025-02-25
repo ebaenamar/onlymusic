@@ -1,9 +1,64 @@
 import { useEffect, useState } from 'react'
-import { Box, Container, VStack, Image, Text, Button, useToast } from '@chakra-ui/react'
+import { Box, Container, VStack, Image, Text, Button, useToast, Spinner } from '@chakra-ui/react'
 import { useSession, signIn } from 'next-auth/react'
-import { SpotifyPlayer } from 'react-spotify-web-playback'
-import axios from 'axios'
-import useSWR from 'swr'
+import { useRouter } from 'next/router'
+
+export default function Home() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const toast = useToast()
+
+  if (status === 'loading') {
+    return (
+      <Container centerContent py={20}>
+        <VStack spacing={8}>
+          <Spinner size="xl" color="green.500" />
+          <Text>Loading...</Text>
+        </VStack>
+      </Container>
+    )
+  }
+
+  if (!session) {
+    return (
+      <Container centerContent py={20} maxW="container.md">
+        <VStack spacing={8}>
+          <Text fontSize="4xl" fontWeight="bold" textAlign="center">
+            Find Your Musical Soulmate
+          </Text>
+          <Text fontSize="xl" textAlign="center" color="gray.500">
+            Connect with people who share your music taste
+          </Text>
+          <Button
+            size="lg"
+            colorScheme="green"
+            onClick={() => signIn('spotify', { callbackUrl: '/' })}
+            leftIcon={
+              <Image
+                src="/spotify-icon.png"
+                alt="Spotify"
+                width={6}
+                height={6}
+              />
+            }
+          >
+            Sign in with Spotify
+          </Button>
+        </VStack>
+      </Container>
+    )
+  }
+
+  return (
+    <Container maxW="container.lg" py={10}>
+      <VStack spacing={8}>
+        <Text fontSize="2xl" fontWeight="bold">
+          Welcome, {session.user?.name}!
+        </Text>
+        <Text>Your musical journey begins here...</Text>
+      </VStack>
+    </Container>
+  )
 
 const fetcher = (url: string) => axios.get(url).then(res => res.data)
 

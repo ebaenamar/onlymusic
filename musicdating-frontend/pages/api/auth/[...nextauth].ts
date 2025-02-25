@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth'
+import NextAuth, { NextAuthOptions } from 'next-auth'
 import SpotifyProvider from 'next-auth/providers/spotify'
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter'
 import clientPromise from '../../../lib/mongodb'
@@ -9,9 +9,16 @@ const scope = [
   'playlist-read-collaborative',
   'user-read-private',
   'user-library-read',
+  'user-read-currently-playing',
+  'user-read-recently-played',
 ].join(' ')
 
-export default NextAuth({
+export const authOptions: NextAuthOptions = {
+  debug: true,
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error',
+  },
   adapter: MongoDBAdapter(clientPromise),
   providers: [
     SpotifyProvider({
