@@ -30,7 +30,6 @@ import {
   FaArrowDown,
   FaTimes,
   FaRandom,
-  FaShuffle,
   FaSave,
   FaShare,
 } from 'react-icons/fa'
@@ -184,7 +183,7 @@ export default function CollaborativePlaylist({
         />
         <HStack>
           <Button
-            leftIcon={<FaShuffle />}
+            leftIcon={<FaRandom />}
             onClick={handleShuffle}
             variant="ghost"
           >
