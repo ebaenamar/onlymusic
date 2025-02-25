@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "buildCommand": "cd musicdating-frontend && npm install && npm run build",
+  "outputDirectory": "musicdating-frontend/.next",
+  "installCommand": "cd musicdating-frontend && npm install",
+  "framework": "nextjs"
+}

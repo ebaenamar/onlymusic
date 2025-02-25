@@ -1,0 +1,13 @@
+{
+  "name": "musicdating",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "musicdating-frontend"
+  ],
+  "scripts": {
+    "dev": "cd musicdating-frontend && npm run dev",
+    "build": "cd musicdating-frontend && npm run build",
+    "start": "cd musicdating-frontend && npm run start"
+  }
+}
