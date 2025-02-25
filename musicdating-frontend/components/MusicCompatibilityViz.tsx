@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Box, Text, VStack, HStack, Progress } from '@chakra-ui/react'
 import { motion, useAnimation } from 'framer-motion'
 import * as d3 from 'd3'
+import { AdvancedPlaylistProfile } from '../types/music'
 
 interface MusicCompatibilityVizProps {
   userProfile: AdvancedPlaylistProfile
