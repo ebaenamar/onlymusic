@@ -30,6 +30,13 @@ import MusicVisualizer from './MusicVisualizer'
 import MusicCompatibilityViz from './MusicCompatibilityViz'
 import { AdvancedPlaylistProfile } from '../types/music'
 
+// Add type declaration for webkitAudioContext
+declare global {
+  interface Window {
+    webkitAudioContext: typeof AudioContext
+  }
+}
+
 const MotionBox = motion(Box)
 
 interface PlaylistTrack {
@@ -70,7 +77,8 @@ export default function MusicDiscoveryInterface({
 
   useEffect(() => {
     // Set up Web Audio API for visualizations
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    const AudioContext = window.AudioContext || window.webkitAudioContext
+    const audioContext = new AudioContext()
     const analyzer = audioContext.createAnalyser()
     analyzer.fftSize = 2048
     setAudioAnalyzer(analyzer)
