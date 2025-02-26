@@ -60,7 +60,7 @@ export default function SignIn() {
           transition={{ duration: 0.5 }}
         >
           <MotionImage
-            src="/logo.png"
+            src="/musicmatch-logo.svg"
             alt="MusicMatch Logo"
             w={{ base: "200px", md: "300px" }}
             mb={8}
@@ -92,24 +92,41 @@ export default function SignIn() {
           w={{ base: "full", md: "auto" }}
           maxW="400px"
         >
-          <Button
-            size="lg"
-            w="full"
-            bg="#1DB954"
-            color="white"
-            _hover={{ bg: "#1ed760" }}
-            leftIcon={
-              <Image
-                src="/spotify-icon.png"
-                alt="Spotify"
-                w="24px"
-                h="24px"
-              />
-            }
-            onClick={() => signIn('spotify', { callbackUrl: '/' })}
-          >
-            Continue with Spotify
-          </Button>
+          <VStack spacing={4} width="full">
+            <Button
+              size="lg"
+              w="full"
+              bg="#1DB954"
+              color="white"
+              _hover={{ bg: "#1ed760" }}
+              leftIcon={
+                <Image
+                  src="/spotify-icon.png"
+                  alt="Spotify"
+                  w="24px"
+                  h="24px"
+                />
+              }
+              onClick={() => signIn('spotify', { callbackUrl: '/' })}
+            >
+              Continue with Spotify
+            </Button>
+            
+            <Text color="white" fontWeight="bold">OR</Text>
+            
+            <Button
+              size="lg"
+              w="full"
+              colorScheme="blue"
+              onClick={() => signIn('credentials', { 
+                username: 'demo', 
+                password: 'demo123',
+                callbackUrl: '/' 
+              })}
+            >
+              Use Demo Account
+            </Button>
+          </VStack>
         </MotionBox>
 
         <Text

@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions } from 'next-auth'
 import SpotifyProvider from 'next-auth/providers/spotify'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter'
 import clientPromise from '../../../lib/mongodb'
 
@@ -26,6 +27,25 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
       authorization: {
         params: { scope }
+      }
+    }),
+    CredentialsProvider({
+      name: 'Demo Account',
+      credentials: {
+        username: { label: "Username", type: "text", placeholder: "demo" },
+        password: { label: "Password", type: "password", placeholder: "demo123" }
+      },
+      async authorize(credentials) {
+        // This is a demo account for testing purposes
+        if (credentials?.username === 'demo' && credentials?.password === 'demo123') {
+          return {
+            id: 'demo-user',
+            name: 'Demo User',
+            email: 'demo@musicmatch.example',
+            image: '/musicmatch-logo.svg'
+          }
+        }
+        return null
       }
     })
   ],
