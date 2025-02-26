@@ -223,12 +223,16 @@ export class AdvancedMusicAnalyzer {
     // Safely extract values from the prediction array
     if (Array.isArray(predictionArray) && predictionArray.length >= 3) {
       // If it's a flat array of values
-      [harmonic, rhythmic, structural] = predictionArray;
+      harmonic = Number(predictionArray[0]);
+      rhythmic = Number(predictionArray[1]);
+      structural = Number(predictionArray[2]);
     } else if (Array.isArray(predictionArray) && predictionArray.length > 0) {
       // If it's a nested array (e.g., batch of predictions)
       const firstPrediction = predictionArray[0];
       if (Array.isArray(firstPrediction) && firstPrediction.length >= 3) {
-        [harmonic, rhythmic, structural] = firstPrediction;
+        harmonic = Number(firstPrediction[0]);
+        rhythmic = Number(firstPrediction[1]);
+        structural = Number(firstPrediction[2]);
       }
     }
     
