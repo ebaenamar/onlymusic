@@ -139,7 +139,7 @@ export class ListeningHistoryMatcher {
       const history = userHistory.find(h => h.trackId === trackId)
       if (history) {
         const recency = Math.exp(
-          -(Date.now() - history.timestamp) / this.RECENCY_WINDOW
+          -(Date.now() - history.timestamp) / ListeningHistoryMatcher.RECENCY_WINDOW
         )
         weightedScore += recency * (history.playCount / 10) // Normalize play count
       }
