@@ -67,7 +67,7 @@ export class PlaylistRecommender {
   }
 
   private calculateGenreMatchScore(track: Track, context: RecommendationContext): number {
-    const trackGenres = new Set(track.artists.flatMap(artist => artist.genres))
+    const trackGenres = new Set(track.artists.flatMap(artist => artist.genres || []))
     const userGenres = new Set(context.userProfile.genreSignature.primary)
     const matchGenres = new Set(context.matchProfile.genreSignature.primary)
 
@@ -182,7 +182,7 @@ export class PlaylistRecommender {
     const artistCounts = new Map<string, number>()
 
     for (const track of recommendations) {
-      const genres = track.artists.flatMap(artist => artist.genres)
+      const genres = track.artists.flatMap(artist => artist.genres || [])
       const artists = track.artists.map(artist => artist.id)
 
       // Check if we're overrepresenting any genre or artist
