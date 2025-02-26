@@ -248,6 +248,46 @@ export class AdvancedMusicAnalyzer {
     }
   }
 
+  private estimateInstrumentalLayers(audioFeatures: AudioFeatures[]): number {
+    // Calculate instrumental layers based on instrumentalness, acousticness, and speechiness
+    const avgInstrumentalness = audioFeatures.reduce((sum, af) => sum + af.instrumentalness, 0) / audioFeatures.length;
+    const avgAcousticness = audioFeatures.reduce((sum, af) => sum + af.acousticness, 0) / audioFeatures.length;
+    const avgSpeechiness = audioFeatures.reduce((sum, af) => sum + af.speechiness, 0) / audioFeatures.length;
+    
+    // Higher instrumentalness and lower speechiness suggests more instrumental layers
+    // Scale to a reasonable range (1-10)
+    const baseEstimate = (avgInstrumentalness * 10) * (1 - avgSpeechiness);
+    
+    // Adjust based on acousticness - acoustic tracks tend to have fewer distinct layers
+    const layerEstimate = baseEstimate * (1 + (1 - avgAcousticness) * 0.5);
+    
+    // Ensure result is between 1 and 10
+    return Math.max(1, Math.min(10, Math.round(layerEstimate)));
+  }
+
+  private calculateDynamicRange(audioFeatures: AudioFeatures[]): number {
+    // Calculate dynamic range based on loudness and energy variations
+    const loudnessValues = audioFeatures.map(af => af.loudness);
+    const energyValues = audioFeatures.map(af => af.energy);
+    
+    // Find the range of loudness (typically negative values, with higher/less negative being louder)
+    const loudnessMin = Math.min(...loudnessValues);
+    const loudnessMax = Math.max(...loudnessValues);
+    const loudnessRange = Math.abs(loudnessMax - loudnessMin);
+    
+    // Find the range of energy (0-1)
+    const energyMin = Math.min(...energyValues);
+    const energyMax = Math.max(...energyValues);
+    const energyRange = energyMax - energyMin;
+    
+    // Combine both factors, normalize to a 0-1 scale
+    // Typical loudness range might be around 20dB, so normalize accordingly
+    const normalizedLoudnessRange = Math.min(1, loudnessRange / 20);
+    
+    // Weighted combination
+    return (normalizedLoudnessRange * 0.7) + (energyRange * 0.3);
+  }
+
   private analyzeEmotionalJourney(audioFeatures: AudioFeatures[]): EmotionalJourney {
     const emotionalValues = audioFeatures.map(af => ({
       valence: af.valence,
