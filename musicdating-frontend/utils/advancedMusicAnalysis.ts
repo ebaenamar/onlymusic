@@ -531,6 +531,206 @@ export class AdvancedMusicAnalyzer {
     return distribution;
   }
 
+  private calculateOpenness(tracks: Track[], audioFeatures: AudioFeatures[]): number {
+    // Openness is measured by:
+    // 1. Genre diversity
+    // 2. Presence of niche/uncommon genres
+    // 3. Acoustic vs electronic balance
+    // 4. Presence of tracks with unusual features
+    
+    // Get unique genres
+    const genres = new Set<string>();
+    for (const track of tracks) {
+      if (track.artists) {
+        for (const artist of track.artists) {
+          if (artist.genres) {
+            for (const genre of artist.genres) {
+              genres.add(genre.toLowerCase());
+            }
+          }
+        }
+      }
+    }
+    
+    // Calculate acoustic vs electronic balance
+    const acousticValues = audioFeatures.map(af => af.acousticness);
+    const avgAcousticness = acousticValues.reduce((sum, val) => sum + val, 0) / acousticValues.length;
+    const avgElectronic = 1 - avgAcousticness;
+    
+    // Calculate balance factor (0-1, where 0.5 is perfectly balanced)
+    const balanceFactor = 1 - Math.abs(avgAcousticness - 0.5) * 2;
+    
+    // Calculate genre diversity factor
+    const genreDiversityFactor = Math.min(1, genres.size / (tracks.length * 0.5));
+    
+    // Combine factors
+    return (genreDiversityFactor * 0.6) + (balanceFactor * 0.4);
+  }
+
+  private calculateConsistency(audioFeatures: AudioFeatures[]): number {
+    // Consistency is measured by how similar the audio features are across tracks
+    // Lower standard deviation = higher consistency
+    
+    // Calculate standard deviations for key features
+    const features = [
+      audioFeatures.map(af => af.energy),
+      audioFeatures.map(af => af.valence),
+      audioFeatures.map(af => af.danceability),
+      audioFeatures.map(af => af.acousticness)
+    ];
+    
+    // Calculate standard deviation for each feature
+    const standardDeviations = features.map(featureValues => {
+      const mean = featureValues.reduce((sum, val) => sum + val, 0) / featureValues.length;
+      const variance = featureValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / featureValues.length;
+      return Math.sqrt(variance);
+    });
+    
+    // Average the standard deviations
+    const avgStdDev = standardDeviations.reduce((sum, stdDev) => sum + stdDev, 0) / standardDeviations.length;
+    
+    // Convert to consistency score (0-1, where 1 is most consistent)
+    // A standard deviation of 0.3 or higher is considered very inconsistent
+    return Math.max(0, 1 - (avgStdDev / 0.3));
+  }
+
+  private calculateEclecticism(tracks: Track[]): number {
+    // Eclecticism is measured by:
+    // 1. Genre diversity
+    // 2. Era diversity
+    // 3. Artist diversity
+    
+    // Count unique genres, eras, and artists
+    const genres = new Set<string>();
+    const eras = new Set<string>();
+    const artists = new Set<string>();
+    
+    for (const track of tracks) {
+      // Extract genres
+      if (track.artists) {
+        for (const artist of track.artists) {
+          artists.add(artist.id);
+          
+          if (artist.genres) {
+            for (const genre of artist.genres) {
+              genres.add(genre.toLowerCase());
+            }
+          }
+        }
+      }
+      
+      // Extract era
+      if (track.album && track.album.release_date) {
+        const year = parseInt(track.album.release_date.substring(0, 4), 10);
+        if (!isNaN(year)) {
+          const decade = Math.floor(year / 10) * 10;
+          eras.add(`${decade}s`);
+        }
+      }
+    }
+    
+    // Calculate diversity factors
+    const genreFactor = Math.min(1, genres.size / (tracks.length * 0.5));
+    const eraFactor = Math.min(1, eras.size / 5); // Normalize to max of 5 eras
+    const artistFactor = Math.min(1, artists.size / tracks.length);
+    
+    // Combine factors with weights
+    return (genreFactor * 0.5) + (eraFactor * 0.3) + (artistFactor * 0.2);
+  }
+
+  private calculateExploratoryNature(tracks: Track[]): number {
+    // Exploratory nature is measured by:
+    // 1. Presence of recently released tracks
+    // 2. Presence of obscure/less popular tracks
+    // 3. Diversity of track popularity
+    
+    const currentYear = new Date().getFullYear();
+    let recentTrackCount = 0;
+    const popularityValues: number[] = [];
+    
+    for (const track of tracks) {
+      // Check if track is recent (released in last 2 years)
+      if (track.album && track.album.release_date) {
+        const releaseYear = parseInt(track.album.release_date.substring(0, 4), 10);
+        if (!isNaN(releaseYear) && (currentYear - releaseYear) <= 2) {
+          recentTrackCount++;
+        }
+      }
+      
+      // Track popularity
+      if (track.popularity !== undefined) {
+        popularityValues.push(track.popularity);
+      }
+    }
+    
+    // Calculate recent track factor
+    const recentTrackFactor = recentTrackCount / tracks.length;
+    
+    // Calculate popularity diversity
+    let popularityDiversity = 0;
+    if (popularityValues.length > 0) {
+      const avgPopularity = popularityValues.reduce((sum, val) => sum + val, 0) / popularityValues.length;
+      // Calculate standard deviation
+      const variance = popularityValues.reduce((sum, val) => sum + Math.pow(val - avgPopularity, 2), 0) / popularityValues.length;
+      const stdDev = Math.sqrt(variance);
+      // Normalize to 0-1 scale
+      popularityDiversity = Math.min(1, stdDev / 30);
+    }
+    
+    // Calculate obscure track factor
+    const obscureTrackCount = popularityValues.filter(p => p < 40).length;
+    const obscureTrackFactor = obscureTrackCount / Math.max(1, popularityValues.length);
+    
+    // Combine factors
+    return (recentTrackFactor * 0.4) + (popularityDiversity * 0.3) + (obscureTrackFactor * 0.3);
+  }
+
+  private calculateArtistLoyalty(tracks: Track[]): number {
+    // Artist loyalty is measured by:
+    // 1. Ratio of tracks by most frequent artists
+    // 2. Concentration of plays among few artists
+    
+    const artistCounts = new Map<string, number>();
+    
+    // Count occurrences of each artist
+    for (const track of tracks) {
+      if (track.artists) {
+        for (const artist of track.artists) {
+          const artistId = artist.id;
+          artistCounts.set(artistId, (artistCounts.get(artistId) || 0) + 1);
+        }
+      }
+    }
+    
+    if (artistCounts.size === 0) return 0;
+    
+    // Sort artists by frequency
+    const sortedArtists = Array.from(artistCounts.entries())
+      .sort((a, b) => b[1] - a[1]);
+    
+    // Calculate ratio of top 3 artists to total tracks
+    const top3ArtistTracks = sortedArtists.slice(0, 3)
+      .reduce((sum, [_, count]) => sum + count, 0);
+    
+    const top3Ratio = top3ArtistTracks / tracks.length;
+    
+    // Calculate concentration using Herfindahl-Hirschman Index (HHI)
+    // This is a measure of market concentration
+    let hhi = 0;
+    for (const [_, count] of artistCounts.entries()) {
+      const marketShare = count / tracks.length;
+      hhi += marketShare * marketShare;
+    }
+    
+    // Normalize HHI to 0-1 scale
+    // HHI ranges from 1/n (perfect equality) to 1 (monopoly)
+    // where n is the number of artists
+    const normalizedHHI = (hhi - (1 / artistCounts.size)) / (1 - (1 / artistCounts.size));
+    
+    // Combine factors
+    return (top3Ratio * 0.6) + (normalizedHHI * 0.4);
+  }
+
   private analyzeEmotionalJourney(audioFeatures: AudioFeatures[]): EmotionalJourney {
     const emotionalValues = audioFeatures.map(af => ({
       valence: af.valence,
