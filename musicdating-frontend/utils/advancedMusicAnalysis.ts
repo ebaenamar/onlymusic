@@ -400,6 +400,137 @@ export class AdvancedMusicAnalyzer {
       .map(([emotion]) => emotion);
   }
 
+  private findArtistCollaborations(tracks: Track[]): { [key: string]: string[] } {
+    const collaborations: { [key: string]: Set<string> } = {};
+    
+    // Find tracks with multiple artists
+    for (const track of tracks) {
+      if (track.artists && track.artists.length > 1) {
+        // For each artist in the track, record their collaborators
+        for (const artist of track.artists) {
+          const artistId = artist.id;
+          const artistName = artist.name;
+          
+          if (!collaborations[artistName]) {
+            collaborations[artistName] = new Set<string>();
+          }
+          
+          // Add all other artists as collaborators
+          for (const collaborator of track.artists) {
+            if (collaborator.id !== artistId) {
+              collaborations[artistName].add(collaborator.name);
+            }
+          }
+        }
+      }
+    }
+    
+    // Convert Sets to arrays for the return value
+    const result: { [key: string]: string[] } = {};
+    for (const [artist, collaborators] of Object.entries(collaborations)) {
+      result[artist] = Array.from(collaborators);
+    }
+    
+    return result;
+  }
+
+  private calculateArtistFrequency(tracks: Track[]): Map<string, number> {
+    const artistCounts = new Map<string, number>();
+    
+    // Count occurrences of each artist
+    for (const track of tracks) {
+      if (track.artists) {
+        for (const artist of track.artists) {
+          const artistName = artist.name;
+          artistCounts.set(artistName, (artistCounts.get(artistName) || 0) + 1);
+        }
+      }
+    }
+    
+    return artistCounts;
+  }
+
+  private categorizeByEra(tracks: Track[]): Map<string, number> {
+    const eras = new Map<string, number>();
+    
+    // Define era ranges (by decade)
+    const eraRanges: { [key: string]: [number, number] } = {
+      '2020s': [2020, 2029],
+      '2010s': [2010, 2019],
+      '2000s': [2000, 2009],
+      '1990s': [1990, 1999],
+      '1980s': [1980, 1989],
+      '1970s': [1970, 1979],
+      '1960s': [1960, 1969],
+      'Pre-1960s': [0, 1959]
+    };
+    
+    // Categorize tracks by release date
+    for (const track of tracks) {
+      if (track.album && track.album.release_date) {
+        // Extract year from release date (format might be YYYY-MM-DD or YYYY)
+        const releaseYear = parseInt(track.album.release_date.substring(0, 4), 10);
+        
+        if (!isNaN(releaseYear)) {
+          // Find the era this year belongs to
+          for (const [era, [startYear, endYear]] of Object.entries(eraRanges)) {
+            if (releaseYear >= startYear && releaseYear <= endYear) {
+              eras.set(era, (eras.get(era) || 0) + 1);
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    return eras;
+  }
+
+  private findCentralArtists(artistFrequency: Map<string, number>): string[] {
+    // Sort artists by frequency and return top 5
+    return Array.from(artistFrequency.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([artist]) => artist);
+  }
+
+  private calculateArtistDiversity(tracks: Track[]): number {
+    // Count unique artists
+    const uniqueArtists = new Set<string>();
+    
+    for (const track of tracks) {
+      if (track.artists) {
+        for (const artist of track.artists) {
+          uniqueArtists.add(artist.id);
+        }
+      }
+    }
+    
+    // Calculate diversity score based on unique artists vs total tracks
+    const uniqueArtistCount = uniqueArtists.size;
+    const trackCount = tracks.length;
+    
+    if (trackCount === 0) return 0;
+    
+    // Normalize to a 0-1 scale
+    // Higher ratio means more diverse artist selection
+    return Math.min(1, uniqueArtistCount / trackCount);
+  }
+
+  private calculateEraDistribution(eras: Map<string, number>): { [key: string]: number } {
+    const total = Array.from(eras.values()).reduce((sum, count) => sum + count, 0);
+    const distribution: { [key: string]: number } = {};
+    
+    if (total === 0) return distribution;
+    
+    // Convert counts to percentages
+    for (const [era, count] of eras.entries()) {
+      distribution[era] = count / total;
+    }
+    
+    return distribution;
+  }
+
   private analyzeEmotionalJourney(audioFeatures: AudioFeatures[]): EmotionalJourney {
     const emotionalValues = audioFeatures.map(af => ({
       valence: af.valence,
