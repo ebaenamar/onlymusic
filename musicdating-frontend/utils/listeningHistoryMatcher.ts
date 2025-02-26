@@ -1,13 +1,13 @@
 import { Track, AudioFeatures } from '../types/spotify'
 
-interface ListeningHistory {
+export interface ListeningHistory {
   trackId: string
   timestamp: number
   playCount: number
   duration: number // in seconds
 }
 
-interface UserMusicProfile {
+export interface UserMusicProfile {
   recentTracks: ListeningHistory[]
   topArtists: {
     id: string

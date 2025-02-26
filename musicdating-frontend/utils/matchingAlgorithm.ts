@@ -1,4 +1,4 @@
-import { Track, UserProfile } from '../types/spotify'
+import { ListeningHistory, UserMusicProfile } from './listeningHistoryMatcher'
 
 export class MatchingAlgorithm {
   private static WEIGHTS = {
@@ -7,7 +7,7 @@ export class MatchingAlgorithm {
     genres: 0.1
   }
 
-  calculateMatchScore(user1: UserProfile, user2: UserProfile): number {
+  calculateMatchScore(user1: UserMusicProfile, user2: UserMusicProfile): number {
     const recentTrackScore = this.calculateRecentTrackScore(user1.recentTracks, user2.recentTracks)
     const artistScore = this.calculateArtistScore(user1.topArtists, user2.topArtists)
     const genreScore = this.calculateGenreScore(user1.topGenres, user2.topGenres)
@@ -19,21 +19,27 @@ export class MatchingAlgorithm {
     )
   }
 
-  private calculateRecentTrackScore(tracks1: Track[], tracks2: Track[]): number {
-    const track1Ids = new Set(tracks1.map(t => t.id))
-    const track2Ids = new Set(tracks2.map(t => t.id))
+  private calculateRecentTrackScore(tracks1: ListeningHistory[], tracks2: ListeningHistory[]): number {
+    const track1Ids = new Set(tracks1.map(t => t.trackId))
+    const track2Ids = new Set(tracks2.map(t => t.trackId))
     const commonTracks = new Set([...track1Ids].filter(id => track2Ids.has(id)))
     return commonTracks.size / Math.max(track1Ids.size, track2Ids.size)
   }
 
-  private calculateArtistScore(artists1: any[], artists2: any[]): number {
+  private calculateArtistScore(
+    artists1: { id: string; weight: number }[],
+    artists2: { id: string; weight: number }[]
+  ): number {
     const artist1Ids = new Set(artists1.map(a => a.id))
     const artist2Ids = new Set(artists2.map(a => a.id))
     const commonArtists = new Set([...artist1Ids].filter(id => artist2Ids.has(id)))
     return commonArtists.size / Math.max(artist1Ids.size, artist2Ids.size)
   }
 
-  private calculateGenreScore(genres1: any[], genres2: any[]): number {
+  private calculateGenreScore(
+    genres1: { name: string; weight: number }[],
+    genres2: { name: string; weight: number }[]
+  ): number {
     const genre1Set = new Set(genres1.map(g => g.name))
     const genre2Set = new Set(genres2.map(g => g.name))
     const commonGenres = new Set([...genre1Set].filter(name => genre2Set.has(name)))
