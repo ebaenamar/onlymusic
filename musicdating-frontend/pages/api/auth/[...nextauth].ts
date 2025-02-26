@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
             id: 'demo-user',
             name: 'Demo User',
             email: 'demo@musicmatch.example',
-            image: '/musicmatch-logo-v2.svg'
+            image: '/musicmatch-logo-v3.svg'
           }
         }
         return null

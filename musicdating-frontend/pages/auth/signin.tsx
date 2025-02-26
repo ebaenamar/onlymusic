@@ -60,7 +60,7 @@ export default function SignIn() {
           transition={{ duration: 0.5 }}
         >
           <MotionImage
-            src="/musicmatch-logo-v2.svg"
+            src="/musicmatch-logo-v3.svg"
             alt="MusicMatch Logo"
             w={{ base: "200px", md: "300px" }}
             mb={8}
@@ -75,13 +75,13 @@ export default function SignIn() {
             fontWeight="bold"
             color="white"
           >
-            Find Your Musical Soulmate
+            Compatible Vibes
           </Text>
           <Text
             fontSize={{ base: "md", md: "lg" }}
             color="whiteAlpha.900"
           >
-            Connect through the music that moves you
+            Connect through musical harmony
           </Text>
         </VStack>
 
