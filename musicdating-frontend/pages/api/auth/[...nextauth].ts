@@ -104,7 +104,21 @@ const isVercelProduction = process.env.VERCEL_URL && process.env.NODE_ENV === 'p
 const isVercelPreview = process.env.VERCEL_URL && process.env.VERCEL_ENV === 'preview';
 
 export const authOptions: NextAuthOptions = {
+  // Enable debug messages in development
   debug: process.env.NODE_ENV === 'development',
+  
+  // Custom logger for errors and debugging
+  logger: {
+    error(code, metadata) {
+      console.error(`Auth error: ${code}`, metadata);
+    },
+    warn(code) {
+      console.warn(`Auth warning: ${code}`);
+    },
+    debug(code, metadata) {
+      console.debug(`Auth debug: ${code}`, metadata);
+    }
+  },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
@@ -255,9 +269,6 @@ export const authOptions: NextAuthOptions = {
     },
     async signOut(message) { 
       console.log(`User signed out: ${message.token.email || 'unknown'}`);
-    },
-    async error(message) {
-      console.error(`Auth error: ${message}`);
     }
   }
 }
