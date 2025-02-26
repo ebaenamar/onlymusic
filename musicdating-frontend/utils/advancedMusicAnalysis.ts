@@ -288,6 +288,118 @@ export class AdvancedMusicAnalyzer {
     return (normalizedLoudnessRange * 0.7) + (energyRange * 0.3);
   }
 
+  private calculateEmotionalArc(emotionalValues: { valence: number, energy: number, arousal: number }[]): number[] {
+    // Calculate a simplified emotional arc based on valence and energy
+    // We'll use a moving average to smooth the arc
+    const windowSize = Math.max(1, Math.floor(emotionalValues.length / 10));
+    const smoothedArc: number[] = [];
+    
+    // Use arousal (combination of valence and energy) as our primary emotional measure
+    for (let i = 0; i < emotionalValues.length; i++) {
+      let sum = 0;
+      let count = 0;
+      
+      // Calculate moving average
+      for (let j = Math.max(0, i - windowSize); j <= Math.min(emotionalValues.length - 1, i + windowSize); j++) {
+        sum += emotionalValues[j].arousal;
+        count++;
+      }
+      
+      smoothedArc.push(sum / count);
+    }
+    
+    return smoothedArc;
+  }
+
+  private analyzeEmotionalTransitions(emotionalValues: { valence: number, energy: number, arousal: number }[]): { smooth: number, sudden: number } {
+    if (emotionalValues.length <= 1) {
+      return { smooth: 0, sudden: 0 };
+    }
+    
+    let smoothTransitions = 0;
+    let suddenTransitions = 0;
+    const threshold = 0.2; // Threshold for considering a transition "sudden"
+    
+    // Analyze transitions between consecutive tracks
+    for (let i = 1; i < emotionalValues.length; i++) {
+      const prevArousal = emotionalValues[i-1].arousal;
+      const currentArousal = emotionalValues[i].arousal;
+      const delta = Math.abs(currentArousal - prevArousal);
+      
+      if (delta > threshold) {
+        suddenTransitions++;
+      } else {
+        smoothTransitions++;
+      }
+    }
+    
+    // Normalize to a 0-1 scale
+    const total = smoothTransitions + suddenTransitions;
+    return {
+      smooth: smoothTransitions / total,
+      sudden: suddenTransitions / total
+    };
+  }
+
+  private calculateEmotionalRange(emotionalValues: { valence: number, energy: number, arousal: number }[]): number {
+    if (emotionalValues.length <= 1) {
+      return 0;
+    }
+    
+    // Calculate range for valence and energy
+    const valenceValues = emotionalValues.map(v => v.valence);
+    const energyValues = emotionalValues.map(v => v.energy);
+    const arousalValues = emotionalValues.map(v => v.arousal);
+    
+    const valenceRange = Math.max(...valenceValues) - Math.min(...valenceValues);
+    const energyRange = Math.max(...energyValues) - Math.min(...energyValues);
+    const arousalRange = Math.max(...arousalValues) - Math.min(...arousalValues);
+    
+    // Combine the ranges with weights
+    return (valenceRange * 0.4) + (energyRange * 0.3) + (arousalRange * 0.3);
+  }
+
+  private identifyDominantEmotions(emotionalValues: { valence: number, energy: number, arousal: number }[]): string[] {
+    // Create a 2D emotion grid based on valence and energy
+    // This is a simplified version of the circumplex model of affect
+    const emotions: { [key: string]: { valence: [number, number], energy: [number, number] } } = {
+      'Joyful': { valence: [0.7, 1.0], energy: [0.7, 1.0] },
+      'Excited': { valence: [0.5, 1.0], energy: [0.8, 1.0] },
+      'Energetic': { valence: [0.4, 0.8], energy: [0.7, 1.0] },
+      'Tense': { valence: [0.0, 0.4], energy: [0.7, 1.0] },
+      'Angry': { valence: [0.0, 0.3], energy: [0.6, 1.0] },
+      'Anxious': { valence: [0.1, 0.4], energy: [0.5, 0.8] },
+      'Sad': { valence: [0.0, 0.3], energy: [0.0, 0.4] },
+      'Depressed': { valence: [0.0, 0.2], energy: [0.0, 0.3] },
+      'Calm': { valence: [0.5, 0.8], energy: [0.0, 0.4] },
+      'Relaxed': { valence: [0.6, 0.9], energy: [0.1, 0.5] },
+      'Peaceful': { valence: [0.7, 1.0], energy: [0.0, 0.3] },
+      'Nostalgic': { valence: [0.4, 0.7], energy: [0.2, 0.5] }
+    };
+    
+    // Count occurrences of each emotion
+    const emotionCounts: { [key: string]: number } = {};
+    
+    for (const value of emotionalValues) {
+      for (const [emotion, ranges] of Object.entries(emotions)) {
+        if (
+          value.valence >= ranges.valence[0] && 
+          value.valence <= ranges.valence[1] && 
+          value.energy >= ranges.energy[0] && 
+          value.energy <= ranges.energy[1]
+        ) {
+          emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+        }
+      }
+    }
+    
+    // Sort emotions by count and return top 3
+    return Object.entries(emotionCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([emotion]) => emotion);
+  }
+
   private analyzeEmotionalJourney(audioFeatures: AudioFeatures[]): EmotionalJourney {
     const emotionalValues = audioFeatures.map(af => ({
       valence: af.valence,
