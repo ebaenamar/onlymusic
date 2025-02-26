@@ -11,6 +11,7 @@ interface ExtendedJWT extends JWT {
   accessToken?: string;
   refreshToken?: string;
   accessTokenExpires?: number;
+  error?: string;
   user?: {
     id: string;
     name?: string | null;
@@ -22,8 +23,9 @@ interface ExtendedJWT extends JWT {
 // Extend the Session type
 interface ExtendedSession extends Session {
   accessToken: string;
+  error?: string;
   user: {
-    id?: string;
+    id: string;
     name?: string;
     email?: string;
     image?: string;
@@ -40,6 +42,54 @@ const scope = [
   'user-read-recently-played',
 ].join(' ')
 
+// Function to refresh Spotify access token
+async function refreshAccessToken(token: ExtendedJWT): Promise<ExtendedJWT> {
+  try {
+    if (!token.refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    const url = 'https://accounts.spotify.com/api/token';
+    const params = new URLSearchParams({
+      client_id: process.env.SPOTIFY_CLIENT_ID || '',
+      client_secret: process.env.SPOTIFY_CLIENT_SECRET || '',
+      grant_type: 'refresh_token',
+      refresh_token: token.refreshToken,
+    });
+
+    console.log(`Refreshing access token for user ${token.user?.name || 'unknown'}`);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+
+    const refreshedTokens = await response.json();
+
+    if (!response.ok) {
+      console.error('Error refreshing access token', refreshedTokens);
+      throw new Error("Failed to refresh access token");
+    }
+
+    console.log('Token refreshed successfully');
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.access_token,
+      accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
+      // Fall back to old refresh token if a new one isn't provided
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+    };
+  } catch (error) {
+    console.error('Error refreshing access token', error);
+    return {
+      ...token,
+      error: 'RefreshAccessTokenError',
+    };
+  }
+}
+
 // Determine if we should use MongoDB adapter
 let adapter;
 try {
@@ -48,6 +98,10 @@ try {
   console.warn('MongoDB adapter initialization failed, falling back to JWT only');
   adapter = undefined;
 }
+
+// Determine if we're in a Vercel environment
+const isVercelProduction = process.env.VERCEL_URL && process.env.NODE_ENV === 'production';
+const isVercelPreview = process.env.VERCEL_URL && process.env.VERCEL_ENV === 'preview';
 
 export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
@@ -90,6 +144,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, user }): Promise<ExtendedJWT> {
       // Initial sign in
       if (account && user) {
+        console.log(`New sign-in for user: ${user.name || 'unknown'}, provider: ${account.provider}`);
         return {
           ...token,
           accessToken: account.access_token,
@@ -111,40 +166,64 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Access token has expired, try to update it
+      console.log(`Access token expired for user ${typedToken.user?.name || 'unknown'}, attempting refresh`);
+      
+      // Only attempt to refresh if we have a refresh token and it's a Spotify account
+      if (typedToken.refreshToken && typedToken.user?.id !== 'demo-user') {
+        return refreshAccessToken(typedToken);
+      }
+      
+      // For demo user or if no refresh token, just return the token as is
       return typedToken;
     },
     async session({ session, token }): Promise<ExtendedSession> {
       const typedToken = token as ExtendedJWT;
       const typedSession = session as ExtendedSession;
       
+      // Add access token to session
       typedSession.accessToken = typedToken.accessToken || '';
+      
+      // Pass any error to the client
+      if (typedToken.error) {
+        typedSession.error = typedToken.error;
+      }
       
       // Only update user properties if they exist in the token
       if (typedToken.user) {
-        typedSession.user.id = typedToken.user.id;
+        typedSession.user.id = typedToken.user.id || 'unknown-user';
         
-        // Only assign non-null values
+        // Only assign non-null values for optional properties
         if (typedToken.user.name) typedSession.user.name = typedToken.user.name;
         if (typedToken.user.email) typedSession.user.email = typedToken.user.email;
         if (typedToken.user.image) typedSession.user.image = typedToken.user.image;
+      } else {
+        // Fallback if user object is missing in token
+        typedSession.user.id = 'unknown-user';
       }
       
       return typedSession;
     },
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account, profile }) {
       // Always allow demo account
       if (account?.provider === 'demo-login') {
+        console.log('Demo account login successful');
         return true
       }
       
-      // For Spotify, check email
+      // For Spotify, perform additional checks
       if (account?.provider === 'spotify') {
+        // Log the authentication attempt
+        console.log(`Spotify auth attempt for user: ${profile?.email || 'unknown email'}`);
+        
         if (!profile?.email) {
+          console.error('Spotify login failed: No email provided');
           return '/auth/error?error=NoEmailProvided'
         }
         
-        // We'll still return true here even if there are issues with Spotify
-        // The user can always use the demo account from the error page
+        // You could add additional checks here if needed
+        // For example, email domain verification, etc.
+        
+        console.log(`Spotify login successful for: ${profile.email}`);
         return true
       }
       
@@ -157,16 +236,28 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET || 'a-default-secret-for-development-only',
   // Optimized for Vercel deployment
-  useSecureCookies: process.env.NODE_ENV === 'production',
+  useSecureCookies: isVercelProduction || process.env.NODE_ENV === 'production',
   cookies: {
     sessionToken: {
-      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      name: `${isVercelProduction || process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: isVercelProduction || process.env.NODE_ENV === 'production'
       }
+    }
+  },
+  // Better logging for NextAuth events
+  events: {
+    async signIn(message) { 
+      console.log(`User signed in: ${message.user.email || 'unknown'}`);
+    },
+    async signOut(message) { 
+      console.log(`User signed out: ${message.token.email || 'unknown'}`);
+    },
+    async error(message) {
+      console.error(`Auth error: ${message}`);
     }
   }
 }
