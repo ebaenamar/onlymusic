@@ -3,6 +3,20 @@ import SpotifyProvider from 'next-auth/providers/spotify'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter'
 import clientPromise from '../../../lib/mongodb'
+import { JWT } from 'next-auth/jwt'
+
+// Extend the JWT type to include our custom properties
+interface ExtendedJWT extends JWT {
+  accessToken?: string;
+  refreshToken?: string;
+  accessTokenExpires?: number;
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+}
 
 const scope = [
   'user-read-email',
@@ -61,14 +75,14 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, account, user }) {
+    async jwt({ token, account, user }): Promise<ExtendedJWT> {
       // Initial sign in
       if (account && user) {
         return {
           ...token,
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
-          accessTokenExpires: account.expires_at ? account.expires_at * 1000 : undefined,
+          accessTokenExpires: account.expires_at ? account.expires_at * 1000 : 0,
           user: {
             id: user.id,
             name: user.name,
@@ -79,19 +93,21 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Return previous token if the access token has not expired yet
-      if (token.accessTokenExpires && Date.now() < token.accessTokenExpires) {
-        return token
+      const typedToken = token as ExtendedJWT;
+      if (typedToken.accessTokenExpires && Date.now() < typedToken.accessTokenExpires) {
+        return typedToken;
       }
 
       // Access token has expired, try to update it
-      return token
+      return typedToken;
     },
     async session({ session, token }) {
-      if (token) {
-        session.accessToken = token.accessToken as string || ''
-        session.user = token.user as any || session.user
+      const typedToken = token as ExtendedJWT;
+      if (typedToken) {
+        session.accessToken = typedToken.accessToken || '';
+        session.user = typedToken.user || session.user;
       }
-      return session
+      return session;
     },
     async signIn({ user, account, profile, email, credentials }) {
       // Always allow demo account
