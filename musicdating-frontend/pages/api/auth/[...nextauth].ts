@@ -57,18 +57,6 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET || 'dummy-client-secret',
       authorization: {
         params: { scope }
-      },
-      // Handle INVALID_CLIENT error
-      async authorize(params, context) {
-        try {
-          return await context.authorize(params, context)
-        } catch (error) {
-          if (error.code === 'INVALID_CLIENT') {
-            console.error('Spotify authorization failed due to invalid client')
-            return null
-          }
-          throw error
-        }
       }
     })
   ],
@@ -88,16 +76,23 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile, email, credentials }) {
       // Always allow demo account
       if (account?.provider === 'demo-login') {
         return true
       }
       
       // For Spotify, check email
-      if (account?.provider === 'spotify' && !profile?.email) {
-        return false
+      if (account?.provider === 'spotify') {
+        if (!profile?.email) {
+          return false
+        }
+        
+        // We'll still return true here even if there are issues with Spotify
+        // The user can always use the demo account from the error page
+        return true
       }
+      
       return true
     }
   },
