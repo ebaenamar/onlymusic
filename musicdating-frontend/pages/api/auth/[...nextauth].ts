@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter'
 import clientPromise from '../../../lib/mongodb'
 import { JWT } from 'next-auth/jwt'
+import { Session } from 'next-auth'
 
 // Extend the JWT type to include our custom properties
 interface ExtendedJWT extends JWT {
@@ -15,6 +16,17 @@ interface ExtendedJWT extends JWT {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+  };
+}
+
+// Extend the Session type
+interface ExtendedSession extends Session {
+  accessToken: string;
+  user: {
+    id?: string;
+    name?: string;
+    email?: string;
+    image?: string;
   };
 }
 
@@ -101,13 +113,23 @@ export const authOptions: NextAuthOptions = {
       // Access token has expired, try to update it
       return typedToken;
     },
-    async session({ session, token }) {
+    async session({ session, token }): Promise<ExtendedSession> {
       const typedToken = token as ExtendedJWT;
-      if (typedToken) {
-        session.accessToken = typedToken.accessToken || '';
-        session.user = typedToken.user || session.user;
+      const typedSession = session as ExtendedSession;
+      
+      typedSession.accessToken = typedToken.accessToken || '';
+      
+      // Only update user properties if they exist in the token
+      if (typedToken.user) {
+        typedSession.user.id = typedToken.user.id;
+        
+        // Only assign non-null values
+        if (typedToken.user.name) typedSession.user.name = typedToken.user.name;
+        if (typedToken.user.email) typedSession.user.email = typedToken.user.email;
+        if (typedToken.user.image) typedSession.user.image = typedToken.user.image;
       }
-      return session;
+      
+      return typedSession;
     },
     async signIn({ user, account, profile, email, credentials }) {
       // Always allow demo account
