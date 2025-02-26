@@ -2,8 +2,13 @@ import * as tf from '@tensorflow/tfjs'
 import { Track, AudioFeatures } from '../types/spotify'
 import { AdvancedPlaylistProfile } from '../types/music'
 
+// Extend the Track interface to include audioFeatures
+interface TrackWithAudioFeatures extends Track {
+  audioFeatures: AudioFeatures;
+}
+
 interface RecommendationContext {
-  likedTracks: Track[]
+  likedTracks: TrackWithAudioFeatures[]
   userProfile: AdvancedPlaylistProfile
   matchProfile: AdvancedPlaylistProfile
   currentMood: {
@@ -23,17 +28,17 @@ export class PlaylistRecommender {
   }
 
   async generateRecommendations(
-    availableTracks: Track[],
+    availableTracks: TrackWithAudioFeatures[],
     context: RecommendationContext
-  ): Promise<Track[]> {
+  ): Promise<TrackWithAudioFeatures[]> {
     const recommendations = await this.rankTracks(availableTracks, context)
     return this.diversifyRecommendations(recommendations, context)
   }
 
   private async rankTracks(
-    tracks: Track[],
+    tracks: TrackWithAudioFeatures[],
     context: RecommendationContext
-  ): Promise<Track[]> {
+  ): Promise<TrackWithAudioFeatures[]> {
     const scores = await Promise.all(
       tracks.map(track => this.calculateTrackScore(track, context))
     )
@@ -45,7 +50,7 @@ export class PlaylistRecommender {
   }
 
   private async calculateTrackScore(
-    track: Track,
+    track: TrackWithAudioFeatures,
     context: RecommendationContext
   ): Promise<number> {
     const weights = {
@@ -66,7 +71,7 @@ export class PlaylistRecommender {
       .reduce((total, [key, weight]) => total + scores[key as keyof typeof scores] * weight, 0)
   }
 
-  private calculateGenreMatchScore(track: Track, context: RecommendationContext): number {
+  private calculateGenreMatchScore(track: TrackWithAudioFeatures, context: RecommendationContext): number {
     const trackGenres = new Set(track.artists.flatMap(artist => artist.genres || []))
     const userGenres = new Set(context.userProfile.genreSignature.primary)
     const matchGenres = new Set(context.matchProfile.genreSignature.primary)
@@ -79,7 +84,7 @@ export class PlaylistRecommender {
     )
   }
 
-  private calculateMoodMatchScore(track: Track, context: RecommendationContext): number {
+  private calculateMoodMatchScore(track: TrackWithAudioFeatures, context: RecommendationContext): number {
     const { energy, valence, danceability } = track.audioFeatures
     const { currentMood } = context
 
@@ -91,7 +96,7 @@ export class PlaylistRecommender {
   }
 
   private async calculateFeatureMatchScore(
-    track: Track,
+    track: TrackWithAudioFeatures,
     context: RecommendationContext
   ): Promise<number> {
     const trackEmbedding = await this.getTrackEmbedding(track)
@@ -104,7 +109,7 @@ export class PlaylistRecommender {
     })
   }
 
-  private calculateNoveltyScore(track: Track, context: RecommendationContext): number {
+  private calculateNoveltyScore(track: TrackWithAudioFeatures, context: RecommendationContext): number {
     const likedTrackIds = new Set(context.likedTracks.map(t => t.id))
     if (likedTrackIds.has(track.id)) return 0
 
@@ -115,7 +120,7 @@ export class PlaylistRecommender {
     return 1 - Math.max(...similarityToLiked)
   }
 
-  private calculateTrackSimilarity(track1: Track, track2: Track): number {
+  private calculateTrackSimilarity(track1: TrackWithAudioFeatures, track2: TrackWithAudioFeatures): number {
     const features = [
       'danceability',
       'energy',
@@ -133,7 +138,7 @@ export class PlaylistRecommender {
     return 1 - Math.sqrt(differences.reduce((sum, diff) => sum + diff, 0) / features.length)
   }
 
-  private async getTrackEmbedding(track: Track): Promise<Float32Array> {
+  private async getTrackEmbedding(track: TrackWithAudioFeatures): Promise<Float32Array> {
     if (this.trackEmbeddings.has(track.id)) {
       return this.trackEmbeddings.get(track.id)!
     }
@@ -143,7 +148,7 @@ export class PlaylistRecommender {
     return embedding
   }
 
-  private async generateTrackEmbedding(track: Track): Promise<Float32Array> {
+  private async generateTrackEmbedding(track: TrackWithAudioFeatures): Promise<Float32Array> {
     const features = [
       track.audioFeatures.danceability,
       track.audioFeatures.energy,
@@ -174,10 +179,10 @@ export class PlaylistRecommender {
   }
 
   private diversifyRecommendations(
-    recommendations: Track[],
+    recommendations: TrackWithAudioFeatures[],
     context: RecommendationContext
-  ): Track[] {
-    const diversified: Track[] = []
+  ): TrackWithAudioFeatures[] {
+    const diversified: TrackWithAudioFeatures[] = []
     const genreCounts = new Map<string, number>()
     const artistCounts = new Map<string, number>()
 
