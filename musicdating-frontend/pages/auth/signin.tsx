@@ -1,8 +1,8 @@
-import { Box, Container, VStack, Text, Button, Image, useToast } from '@chakra-ui/react'
+import { Box, Container, VStack, Text, Button, Image, useToast, Spinner } from '@chakra-ui/react'
 import { signIn, useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 const MotionBox = motion(Box)
 const MotionImage = motion(Image)
@@ -11,19 +11,34 @@ export default function SignIn() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const toast = useToast()
-  const { error } = router.query
+  const { error, callbackUrl } = router.query
+  const [isSigningIn, setIsSigningIn] = useState(false)
 
   useEffect(() => {
     if (session) {
-      router.push('/')
+      router.push(callbackUrl as string || '/')
     }
-  }, [session, router])
+  }, [session, router, callbackUrl])
 
   useEffect(() => {
     if (error) {
+      let errorMessage = 'Something went wrong with authentication'
+      
+      if (error === 'AccessDenied') {
+        errorMessage = 'You need to allow Spotify access'
+      } else if (error === 'NoEmailProvided') {
+        errorMessage = 'No email was provided by Spotify'
+      } else if (error === 'Callback') {
+        errorMessage = 'Authentication callback failed'
+      } else if (error === 'OAuthSignin') {
+        errorMessage = 'Error starting OAuth sign in'
+      } else if (error === 'OAuthCallback') {
+        errorMessage = 'Error completing OAuth sign in'
+      }
+      
       toast({
         title: 'Authentication Error',
-        description: error === 'AccessDenied' ? 'You need to allow Spotify access' : 'Something went wrong',
+        description: errorMessage,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -31,10 +46,53 @@ export default function SignIn() {
     }
   }, [error, toast])
 
-  if (status === 'loading') {
+  const handleDemoSignIn = async () => {
+    setIsSigningIn(true)
+    try {
+      await signIn('demo-login', { 
+        username: 'demo', 
+        password: 'demo123',
+        callbackUrl: callbackUrl as string || '/' 
+      })
+    } catch (error) {
+      toast({
+        title: 'Sign In Error',
+        description: 'Failed to sign in with demo account. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setIsSigningIn(false)
+    }
+  }
+
+  const handleSpotifySignIn = async () => {
+    setIsSigningIn(true)
+    try {
+      await signIn('spotify', { 
+        callbackUrl: callbackUrl as string || '/' 
+      })
+    } catch (error) {
+      toast({
+        title: 'Sign In Error',
+        description: 'Failed to sign in with Spotify. Please try again or use the demo account.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setIsSigningIn(false)
+    }
+  }
+
+  if (status === 'loading' || isSigningIn) {
     return (
-      <Container centerContent>
-        <Text>Loading...</Text>
+      <Container centerContent h="100vh">
+        <VStack spacing={4} justify="center" h="full">
+          <Spinner size="xl" color="green.500" />
+          <Text>Loading...</Text>
+        </VStack>
       </Container>
     )
   }
@@ -44,7 +102,7 @@ export default function SignIn() {
       maxW="100vw" 
       h="100vh" 
       p={0} 
-      bg="linear-gradient(135deg, #1DB954 0%, #191414 100%)"
+      bg="linear-gradient(135deg, #FF4B91 0%, #FF9B54 50%, #6C63FF 100%)"
     >
       <VStack 
         spacing={8} 
@@ -60,7 +118,7 @@ export default function SignIn() {
           transition={{ duration: 0.5 }}
         >
           <MotionImage
-            src="/musicmatch-logo-v3.svg"
+            src="/musicmatch-logo-fun.svg"
             alt="MusicMatch Logo"
             w={{ base: "200px", md: "300px" }}
             mb={8}
@@ -96,12 +154,10 @@ export default function SignIn() {
             <Button
               size="lg"
               w="full"
-              colorScheme="blue"
-              onClick={() => signIn('demo-login', { 
-                username: 'demo', 
-                password: 'demo123',
-                callbackUrl: '/' 
-              })}
+              colorScheme="pink"
+              onClick={handleDemoSignIn}
+              isLoading={isSigningIn}
+              loadingText="Signing in..."
             >
               Use Demo Account
             </Button>
@@ -122,7 +178,9 @@ export default function SignIn() {
                   h="24px"
                 />
               }
-              onClick={() => signIn('spotify', { callbackUrl: '/' })}
+              onClick={handleSpotifySignIn}
+              isLoading={isSigningIn}
+              loadingText="Connecting to Spotify..."
             >
               Continue with Spotify
             </Button>

@@ -24,7 +24,7 @@ try {
 }
 
 export const authOptions: NextAuthOptions = {
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
             id: 'demo-user',
             name: 'Demo User',
             email: 'demo@musicmatch.example',
-            image: '/musicmatch-logo-v3.svg'
+            image: '/musicmatch-logo-fun.svg'
           }
         }
         return null
@@ -61,18 +61,35 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, account }) {
-      if (account) {
-        token.accessToken = account.access_token
-        token.refreshToken = account.refresh_token
-        token.expiresAt = account.expires_at ? account.expires_at * 1000 : undefined
+    async jwt({ token, account, user }) {
+      // Initial sign in
+      if (account && user) {
+        return {
+          ...token,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          accessTokenExpires: account.expires_at ? account.expires_at * 1000 : undefined,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image
+          }
+        }
       }
+
+      // Return previous token if the access token has not expired yet
+      if (token.accessTokenExpires && Date.now() < token.accessTokenExpires) {
+        return token
+      }
+
+      // Access token has expired, try to update it
       return token
     },
-    async session({ session, token, user }) {
-      session.accessToken = token.accessToken as string || ''
-      if (user) {
-        session.user.id = user.id
+    async session({ session, token }) {
+      if (token) {
+        session.accessToken = token.accessToken as string || ''
+        session.user = token.user as any || session.user
       }
       return session
     },
@@ -85,7 +102,7 @@ export const authOptions: NextAuthOptions = {
       // For Spotify, check email
       if (account?.provider === 'spotify') {
         if (!profile?.email) {
-          return false
+          return '/auth/error?error=NoEmailProvided'
         }
         
         // We'll still return true here even if there are issues with Spotify
@@ -97,9 +114,23 @@ export const authOptions: NextAuthOptions = {
     }
   },
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET || 'a-default-secret-for-development-only'
+  secret: process.env.NEXTAUTH_SECRET || 'a-default-secret-for-development-only',
+  // Optimized for Vercel deployment
+  useSecureCookies: process.env.NODE_ENV === 'production',
+  cookies: {
+    sessionToken: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
+  }
 }
 
 export default NextAuth(authOptions)
