@@ -31,14 +31,9 @@ export const authOptions: NextAuthOptions = {
   },
   adapter,
   providers: [
-    SpotifyProvider({
-      clientId: process.env.SPOTIFY_CLIENT_ID || 'dummy-client-id',
-      clientSecret: process.env.SPOTIFY_CLIENT_SECRET || 'dummy-client-secret',
-      authorization: {
-        params: { scope }
-      }
-    }),
+    // Put CredentialsProvider first to prioritize it
     CredentialsProvider({
+      id: "demo-login",
       name: 'Demo Account',
       credentials: {
         username: { label: "Username", type: "text", placeholder: "demo" },
@@ -56,6 +51,25 @@ export const authOptions: NextAuthOptions = {
         }
         return null
       }
+    }),
+    SpotifyProvider({
+      clientId: process.env.SPOTIFY_CLIENT_ID || 'dummy-client-id',
+      clientSecret: process.env.SPOTIFY_CLIENT_SECRET || 'dummy-client-secret',
+      authorization: {
+        params: { scope }
+      },
+      // Handle INVALID_CLIENT error
+      async authorize(params, context) {
+        try {
+          return await context.authorize(params, context)
+        } catch (error) {
+          if (error.code === 'INVALID_CLIENT') {
+            console.error('Spotify authorization failed due to invalid client')
+            return null
+          }
+          throw error
+        }
+      }
     })
   ],
   callbacks: {
@@ -68,13 +82,19 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token, user }) {
-      session.accessToken = token.accessToken as string
+      session.accessToken = token.accessToken as string || ''
       if (user) {
         session.user.id = user.id
       }
       return session
     },
     async signIn({ user, account, profile }) {
+      // Always allow demo account
+      if (account?.provider === 'demo-login') {
+        return true
+      }
+      
+      // For Spotify, check email
       if (account?.provider === 'spotify' && !profile?.email) {
         return false
       }

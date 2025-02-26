@@ -1,6 +1,7 @@
 import { Box, Container, VStack, Text, Button, Image, Heading } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
+import { signIn } from 'next-auth/react'
 
 const MotionBox = motion(Box)
 const MotionImage = motion(Image)
@@ -17,6 +18,8 @@ export default function ErrorPage() {
         return 'You need to allow access to your Spotify account.'
       case 'Verification':
         return 'The verification token has expired or has already been used.'
+      case 'INVALID_CLIENT':
+        return 'The Spotify client is not properly configured for this domain.'
       default:
         return 'An unexpected error occurred.'
     }
@@ -27,7 +30,7 @@ export default function ErrorPage() {
       maxW="100vw" 
       h="100vh" 
       p={0} 
-      bg="linear-gradient(135deg, #1DB954 0%, #191414 100%)"
+      bg="linear-gradient(135deg, #1DB954 0%, #1E88E5 50%, #9C27B0 100%)"
     >
       <VStack 
         spacing={8} 
@@ -62,13 +65,27 @@ export default function ErrorPage() {
           </Text>
           
           <Text color="white" textAlign="center">
-            You can try again with Spotify or use our demo account option instead.
+            No worries! You can use our demo account instead.
           </Text>
           
           <Button 
-            colorScheme="green" 
-            onClick={() => router.push('/auth/signin')}
+            colorScheme="blue" 
             size="lg"
+            width="full"
+            onClick={() => signIn('demo-login', { 
+              username: 'demo', 
+              password: 'demo123',
+              callbackUrl: '/' 
+            })}
+          >
+            Use Demo Account
+          </Button>
+          
+          <Button 
+            variant="outline"
+            colorScheme="whiteAlpha" 
+            onClick={() => router.push('/auth/signin')}
+            size="md"
             width="full"
           >
             Back to Sign In

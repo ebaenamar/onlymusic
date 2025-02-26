@@ -96,6 +96,21 @@ export default function SignIn() {
             <Button
               size="lg"
               w="full"
+              colorScheme="blue"
+              onClick={() => signIn('demo-login', { 
+                username: 'demo', 
+                password: 'demo123',
+                callbackUrl: '/' 
+              })}
+            >
+              Use Demo Account
+            </Button>
+            
+            <Text color="white" fontWeight="bold">OR</Text>
+            
+            <Button
+              size="lg"
+              w="full"
               bg="#1DB954"
               color="white"
               _hover={{ bg: "#1ed760" }}
@@ -112,20 +127,10 @@ export default function SignIn() {
               Continue with Spotify
             </Button>
             
-            <Text color="white" fontWeight="bold">OR</Text>
-            
-            <Button
-              size="lg"
-              w="full"
-              colorScheme="blue"
-              onClick={() => signIn('credentials', { 
-                username: 'demo', 
-                password: 'demo123',
-                callbackUrl: '/' 
-              })}
-            >
-              Use Demo Account
-            </Button>
+            <Text color="whiteAlpha.700" fontSize="xs" textAlign="center">
+              Note: Spotify login requires proper API configuration.
+              Demo account works for everyone!
+            </Text>
           </VStack>
         </MotionBox>
 
