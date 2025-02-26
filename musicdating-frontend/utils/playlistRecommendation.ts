@@ -1,5 +1,6 @@
 import * as tf from '@tensorflow/tfjs'
 import { Track, AudioFeatures } from '../types/spotify'
+import { AdvancedPlaylistProfile } from '../types/music'
 
 interface RecommendationContext {
   likedTracks: Track[]
