@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="250" height="250" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8A2387" />
+      <stop offset="50%" stop-color="#E94057" />
+      <stop offset="100%" stop-color="#F27121" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+      <feOffset dx="0" dy="2" result="offsetblur" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="125" cy="125" r="120" fill="url(#gradient)" />
+  
+  <!-- Music Note Left -->
+  <g filter="url(#shadow)">
+    <path d="M85,70 L85,160 C85,175 70,185 55,180 C40,175 35,155 50,145 C60,140 70,145 70,150 L70,70 L85,70 Z" fill="white" />
+  </g>
+  
+  <!-- Music Note Right -->
+  <g filter="url(#shadow)">
+    <path d="M165,50 L165,140 C165,155 150,165 135,160 C120,155 115,135 130,125 C140,120 150,125 150,130 L150,50 L165,50 Z" fill="white" />
+  </g>
+  
+  <!-- Connecting Line -->
+  <path d="M85,70 L150,50" stroke="white" stroke-width="5" stroke-linecap="round" />
+  
+  <!-- Heart -->
+  <g transform="translate(125, 190) scale(0.6) rotate(0)">
+    <path d="M0,30 C-30,-10 -70,0 -70,30 C-70,60 -30,70 0,100 C30,70 70,60 70,30 C70,0 30,-10 0,30 Z" fill="white" filter="url(#shadow)" />
+  </g>
+  
+  <!-- Pulse Lines -->
+  <g stroke="white" stroke-width="3" stroke-linecap="round" filter="url(#shadow)">
+    <path d="M30,125 L60,125 L75,100 L90,150 L105,110 L120,140 L135,90 L150,125 L165,125 L190,125" />
+  </g>
+</svg>

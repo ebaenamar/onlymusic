@@ -14,17 +14,26 @@ const scope = [
   'user-read-recently-played',
 ].join(' ')
 
+// Determine if we should use MongoDB adapter
+let adapter;
+try {
+  adapter = MongoDBAdapter(clientPromise);
+} catch (error) {
+  console.warn('MongoDB adapter initialization failed, falling back to JWT only');
+  adapter = undefined;
+}
+
 export const authOptions: NextAuthOptions = {
   debug: true,
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
-  adapter: MongoDBAdapter(clientPromise),
+  adapter,
   providers: [
     SpotifyProvider({
-      clientId: process.env.SPOTIFY_CLIENT_ID!,
-      clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
+      clientId: process.env.SPOTIFY_CLIENT_ID || 'dummy-client-id',
+      clientSecret: process.env.SPOTIFY_CLIENT_SECRET || 'dummy-client-secret',
       authorization: {
         params: { scope }
       }
@@ -42,7 +51,7 @@ export const authOptions: NextAuthOptions = {
             id: 'demo-user',
             name: 'Demo User',
             email: 'demo@musicmatch.example',
-            image: '/musicmatch-logo.svg'
+            image: '/musicmatch-logo-v2.svg'
           }
         }
         return null
@@ -54,17 +63,19 @@ export const authOptions: NextAuthOptions = {
       if (account) {
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
-        token.expiresAt = account.expires_at! * 1000
+        token.expiresAt = account.expires_at ? account.expires_at * 1000 : undefined
       }
       return token
     },
     async session({ session, token, user }) {
       session.accessToken = token.accessToken as string
-      session.user.id = user.id
+      if (user) {
+        session.user.id = user.id
+      }
       return session
     },
     async signIn({ user, account, profile }) {
-      if (!profile?.email) {
+      if (account?.provider === 'spotify' && !profile?.email) {
         return false
       }
       return true
@@ -73,7 +84,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt'
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET || 'a-default-secret-for-development-only'
 }
 
 export default NextAuth(authOptions)

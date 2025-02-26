@@ -60,7 +60,7 @@ export default function SignIn() {
           transition={{ duration: 0.5 }}
         >
           <MotionImage
-            src="/musicmatch-logo.svg"
+            src="/musicmatch-logo-v2.svg"
             alt="MusicMatch Logo"
             w={{ base: "200px", md: "300px" }}
             mb={8}

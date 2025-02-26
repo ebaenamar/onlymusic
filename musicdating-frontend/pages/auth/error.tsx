@@ -43,7 +43,7 @@ export default function ErrorPage() {
           transition={{ duration: 0.5 }}
         >
           <MotionImage
-            src="/musicmatch-logo.svg"
+            src="/musicmatch-logo-v2.svg"
             alt="MusicMatch Logo"
             w={{ base: "150px", md: "200px" }}
             mb={8}
